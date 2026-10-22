@@ -27,14 +27,19 @@ where
                         <meta charset="utf-8" />
                         <meta name="viewport" content="width=device-width, initial-scale=1" />
                         <meta name="color-scheme" content="light dark" />
-                        <meta name="description" content="Free, source-owned Proa components: dropdown menu, combobox, drawer and toast." />
+                        <meta
+                            name="description"
+                            content="Free, source-owned Proa components: dropdown menu, combobox, drawer and toast."
+                        />
                         <title>{raw_text_ok(title)}</title>
                         <link rel="icon" href="/static/favicon.svg" />
                         <link rel="stylesheet" href="/static/styles.css" />
                         <link rel="stylesheet" href="/static/proa/proabono/proabono.css" />
                         <script src="/static/proa/proabono/proabono.js" defer></script>
                     </head>
-                    <body class="bg-[var(--pb-surface)] text-[var(--pb-fg)] antialiased">{content}</body>
+                    <body class="bg-[var(--pb-surface)] text-[var(--pb-fg)] antialiased">
+                        {content}
+                    </body>
                 </html>
             }
             .render(cx)

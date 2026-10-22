@@ -415,6 +415,19 @@ fn add(names: &[String], registry: &str, root: &Path, force: bool, dry_run: bool
     let site = find_site(root)?;
     let manifests = resolve_items(registry, names)?;
 
+    // Hashes of files as we last installed them. A file that still matches is
+    // untouched, so a newer registry version may replace it without --force.
+    let lock_path = site.root.join(LOCK_FILE);
+    let mut lock: Lock = fs::read(&lock_path)
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_default();
+    let installed: BTreeMap<String, String> = lock
+        .items
+        .values()
+        .flat_map(|item| item.files.clone())
+        .collect();
+
     // Plan and verify everything before touching the site.
     let mut planned = Vec::new();
     let mut conflicts = Vec::new();
@@ -435,6 +448,12 @@ fn add(names: &[String], registry: &str, root: &Path, force: bool, dry_run: bool
             let action = match fs::read(&path) {
                 Ok(existing) if existing == bytes => Action::Unchanged,
                 Ok(_) if force => Action::Update,
+                Ok(existing)
+                    if installed.get(&display(&site.root, &path))
+                        == Some(&format!("sha256:{}", sha256_hex(&existing))) =>
+                {
+                    Action::Update
+                }
                 Ok(_) => {
                     conflicts.push(path.clone());
                     Action::Update
@@ -460,7 +479,7 @@ fn add(names: &[String], registry: &str, root: &Path, force: bool, dry_run: bool
             .map(|p| format!("  {}", display(&site.root, p)))
             .collect();
         bail!(
-            "these files differ from the registry version (local edits?):\n{}\nre-run with --force to overwrite",
+            "these files differ from the registry and are not unmodified proabono installs (local edits?):\n{}\nre-run with --force to overwrite",
             list.join("\n")
         );
     }
@@ -492,12 +511,6 @@ fn add(names: &[String], registry: &str, root: &Path, force: bool, dry_run: bool
         register_modules(mod_rs, names)?;
     }
 
-    // Lock file
-    let lock_path = site.root.join(LOCK_FILE);
-    let mut lock: Lock = fs::read(&lock_path)
-        .ok()
-        .and_then(|b| serde_json::from_slice(&b).ok())
-        .unwrap_or_default();
     lock.registry = registry.to_string();
     let mut cursor = 0;
     for manifest in &manifests {

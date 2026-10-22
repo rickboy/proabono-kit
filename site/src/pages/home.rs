@@ -93,15 +93,18 @@ impl<L: DataLoader> WebRenderSync<L> for HomePage {
             <main class="mx-auto flex max-w-4xl flex-col px-4 py-12 sm:px-6">
                 <header class="flex flex-col gap-4 pb-12 sm:flex-row sm:items-end sm:justify-between">
                     <div class="flex flex-col gap-3">
-                        <p class="font-mono text-xs uppercase tracking-[0.2em] text-[var(--pb-muted)]">"proabono-kit · v0.1"</p>
-                        <h1 class="text-4xl font-semibold tracking-tight">"Free Proa components"</h1>
+                        <p class="font-mono text-xs uppercase tracking-[0.2em] text-[var(--pb-muted)]">
+                            "proabono-kit · v0.1"
+                        </p>
+                        <h1 class="text-4xl font-semibold tracking-tight">
+                            "Free Proa components"
+                        </h1>
                         <p class={LEDE}>
                             "Source-owned components for Proa sites, written from the WAI-ARIA patterns. Server-rendered HTML first; a small vanilla-JS runtime adds keyboard support. MIT OR Apache-2.0."
                         </p>
                     </div>
                     {DropdownMenu::new("theme-switch", "Theme", &THEME_MENU).align(MenuAlign::End)}
                 </header>
-
                 <section aria-labelledby="dropdown-menu" class={SECTION}>
                     <h2 id="dropdown-menu" class={H2}>"Dropdown menu"</h2>
                     <p class={LEDE}>
@@ -111,9 +114,12 @@ impl<L: DataLoader> WebRenderSync<L> for HomePage {
                         {DropdownMenu::new("account-menu", "Account", &ACCOUNT_MENU)}
                         {DropdownMenu::new("role-menu", "Swap to…", &ROLE_MENU).align(MenuAlign::Center)}
                     </div>
-                    <pre class={CODE}><code>"DropdownMenu::new(\"account-menu\", \"Account\", &[\n    MenuItem::link(\"Profile\", \"/profile\").shortcut(\"Shift+P\"),\n    MenuItem::SEPARATOR,\n    MenuItem::action(\"Log out\", \"logout\").danger(),\n])"</code></pre>
+                    <pre class={CODE}>
+                        <code>
+                            "DropdownMenu::new(\"account-menu\", \"Account\", &[\n    MenuItem::link(\"Profile\", \"/profile\").shortcut(\"Shift+P\"),\n    MenuItem::SEPARATOR,\n    MenuItem::action(\"Log out\", \"logout\").danger(),\n])"
+                        </code>
+                    </pre>
                 </section>
-
                 <section aria-labelledby="combobox" class={SECTION}>
                     <h2 id="combobox" class={H2}>"Combobox"</h2>
                     <p class={LEDE}>
@@ -124,10 +130,11 @@ impl<L: DataLoader> WebRenderSync<L> for HomePage {
                         <button type="submit" class="pb-trigger">"Submit"</button>
                     </form>
                 </section>
-
                 <section aria-labelledby="drawer" class={SECTION}>
                     <h2 id="drawer" class={H2}>"Drawer"</h2>
-                    <p class={LEDE}>"Slides in from any edge. Built on native <dialog> with invoker commands."</p>
+                    <p class={LEDE}>
+                        "Slides in from any edge. Built on native <dialog> with invoker commands."
+                    </p>
                     <div class="flex flex-wrap gap-3">
                         {DrawerTrigger::new("drawer-right", "Open right")}
                         {DrawerTrigger::new("drawer-bottom", "Open bottom")}
@@ -137,24 +144,62 @@ impl<L: DataLoader> WebRenderSync<L> for HomePage {
                     {Drawer::new("drawer-left", "Navigation", DrawerBody).side(DrawerSide::Left)}
                     {Drawer::new("drawer-bottom", "Dispatch", DrawerBody).description("Mobile-style sheet from the bottom edge.").side(DrawerSide::Bottom)}
                 </section>
-
                 <section aria-labelledby="toast" class={SECTION}>
                     <h2 id="toast" class={H2}>"Toast"</h2>
                     <p class={LEDE}>
                         "Sonner-style stack: hover to expand, timers pause while you read. Server-rendered flash toasts, window.proabono.toast(), or a data-pb-toast attribute."
                     </p>
                     <div class="flex flex-wrap gap-3">
-                        <button type="button" class="pb-trigger" data-pb-toast="Event created" data-pb-toast-description="Friday, 20:00 · Midstack L42">"Default"</button>
-                        <button type="button" class="pb-trigger" data-pb-toast="Casualty delivered" data-pb-toast-tone="success" data-pb-toast-description="Payout 4,200 cr">"Success"</button>
-                        <button type="button" class="pb-trigger" data-pb-toast="Rival crew inbound" data-pb-toast-tone="warning">"Warning"</button>
-                        <button type="button" class="pb-trigger" data-pb-toast="Hull breach" data-pb-toast-tone="error" data-pb-toast-description="Return to hangar.">"Error"</button>
-                        <button type="button" class="pb-trigger" data-pb-toast="Sticky notice" data-pb-toast-tone="info" data-pb-toast-duration="0">"No auto-dismiss"</button>
+                        <button
+                            type="button"
+                            class="pb-trigger"
+                            data-pb-toast="Event created"
+                            data-pb-toast-description="Friday, 20:00 · Midstack L42"
+                        >
+                            "Default"
+                        </button>
+                        <button
+                            type="button"
+                            class="pb-trigger"
+                            data-pb-toast="Casualty delivered"
+                            data-pb-toast-tone="success"
+                            data-pb-toast-description="Payout 4,200 cr"
+                        >
+                            "Success"
+                        </button>
+                        <button
+                            type="button"
+                            class="pb-trigger"
+                            data-pb-toast="Rival crew inbound"
+                            data-pb-toast-tone="warning"
+                        >
+                            "Warning"
+                        </button>
+                        <button
+                            type="button"
+                            class="pb-trigger"
+                            data-pb-toast="Hull breach"
+                            data-pb-toast-tone="error"
+                            data-pb-toast-description="Return to hangar."
+                        >
+                            "Error"
+                        </button>
+                        <button
+                            type="button"
+                            class="pb-trigger"
+                            data-pb-toast="Sticky notice"
+                            data-pb-toast-tone="info"
+                            data-pb-toast-duration="0"
+                        >
+                            "No auto-dismiss"
+                        </button>
                     </div>
                 </section>
-
                 <section aria-labelledby="theming" class={SECTION}>
                     <h2 id="theming" class={H2}>"Theming"</h2>
-                    <p class={LEDE}>"Override the --pb-* custom properties anywhere. This panel uses a Golden Hour palette."</p>
+                    <p class={LEDE}>
+                        "Override the --pb-* custom properties anywhere. This panel uses a Golden Hour palette."
+                    </p>
                     <div
                         class="flex flex-wrap items-start gap-4 rounded-xl p-6"
                         style="--pb-fg:#ece6d6;--pb-muted:#a8a3b3;--pb-surface:#0b0d14;--pb-surface-hover:#1b1f2d;--pb-border:rgb(236 230 214/.16);--pb-accent:#ffb02e;--pb-accent-fg:#1a1206;--pb-radius:0;background:#06070b;color:#ece6d6"
@@ -163,14 +208,22 @@ impl<L: DataLoader> WebRenderSync<L> for HomePage {
                         {Combobox::new("gh-district", "district", "District", &DISTRICTS).placeholder("Search districts")}
                     </div>
                 </section>
-
                 <section aria-labelledby="install" class={SECTION}>
                     <h2 id="install" class={H2}>"Install"</h2>
-                    <pre class={CODE}><code>"cargo install --git https://github.com/rickboy/proabono-kit proabono\ncd my-proa-site\nproabono add dropdown-menu combobox drawer toast"</code></pre>
-                    <p class={LEDE}>"Then link the stylesheet and runtime once in src/layouts/root.rs:"</p>
-                    <pre class={CODE}><code>"<link rel=\"stylesheet\" href=\"/static/proa/proabono/proabono.css\" />\n<script src=\"/static/proa/proabono/proabono.js\" defer></script>"</code></pre>
+                    <pre class={CODE}>
+                        <code>
+                            "cargo install --git https://github.com/rickboy/proabono-kit proabono\ncd my-proa-site\nproabono add dropdown-menu combobox drawer toast"
+                        </code>
+                    </pre>
+                    <p class={LEDE}>
+                        "Then link the stylesheet and runtime once in src/layouts/root.rs:"
+                    </p>
+                    <pre class={CODE}>
+                        <code>
+                            "<link rel=\"stylesheet\" href=\"/static/proa/proabono/proabono.css\" />\n<script src=\"/static/proa/proabono/proabono.js\" defer></script>"
+                        </code>
+                    </pre>
                 </section>
-
                 {Toaster::new(&WELCOME)}
                 {THEME_SCRIPT}
             </main>

@@ -273,7 +273,13 @@ impl<L: DataLoader> WebRenderSync<L> for &MenuItem {
                 shortcut,
                 tone,
             } => html_sync! {
-                <a role="menuitem" tabindex="-1" href={href} class="pb-menu-item" data-tone={tone.as_str()}>
+                <a
+                    role="menuitem"
+                    tabindex="-1"
+                    href={href}
+                    class="pb-menu-item"
+                    data-tone={tone.as_str()}
+                >
                     {label}
                     {Shortcut(shortcut)}
                 </a>

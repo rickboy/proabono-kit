@@ -136,7 +136,13 @@ impl<L: DataLoader> WebRenderSync<L> for Combobox {
                             html_sync! { <option value={option.label}></option> }
                         }}
                     </datalist>
-                    <ul id={text!("{}-listbox", id)} role="listbox" aria-label={self.label} class="pb-listbox" hidden>
+                    <ul
+                        id={text!("{}-listbox", id)}
+                        role="listbox"
+                        aria-label={self.label}
+                        class="pb-listbox"
+                        hidden
+                    >
                         {for (i, option) in self.options.iter().enumerate() {
                             let is_selected = if Some(option.value) == self.value { "true" } else { "false" };
                             html_sync! {
@@ -153,7 +159,9 @@ impl<L: DataLoader> WebRenderSync<L> for Combobox {
                                 </li>
                             }
                         }}
-                        <li role="presentation" class="pb-empty" data-pb-combobox-empty hidden>{self.empty_text}</li>
+                        <li role="presentation" class="pb-empty" data-pb-combobox-empty hidden>
+                            {self.empty_text}
+                        </li>
                     </ul>
                 </div>
             </div>

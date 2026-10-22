@@ -197,7 +197,9 @@ impl<L: DataLoader, Body: WebRenderSync<L>> WebRenderSync<L> for Drawer<Body> {
                     {Description { id, text: self.description }}
                 </header>
                 <form method="dialog" class="pb-drawer-close">
-                    <button type="submit" class="pb-icon-button" aria-label="Close">{icons::X}</button>
+                    <button type="submit" class="pb-icon-button" aria-label="Close">
+                        {icons::X}
+                    </button>
                 </form>
                 <div class="pb-drawer-body">{self.body}</div>
             </dialog>

@@ -154,7 +154,12 @@ impl<L: DataLoader> WebRenderSync<L> for &Toast<'_> {
                     <p class="pb-toast-title">{self.title}</p>
                     {Description(self.description)}
                 </div>
-                <button type="button" class="pb-icon-button" data-pb-toast-close aria-label="Dismiss notification">
+                <button
+                    type="button"
+                    class="pb-icon-button"
+                    data-pb-toast-close
+                    aria-label="Dismiss notification"
+                >
                     {icons::X}
                 </button>
             </li>
