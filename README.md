@@ -29,14 +29,16 @@ site/                       Gallery: a Proa site that compiles registry/ in plac
 
 ## Use it in a Proa site
 
-The repo is private for now, so install from a local checkout:
-
 ```bash
-cargo install --path ~/proabono-kit/cli
-cd ~/proabono-kit && proabono build            # writes dist/r/
-cd ~/my-proa-site
-proabono add dropdown-menu combobox --registry ~/proabono-kit/dist/r
+cargo install --git https://github.com/rickboy/proabono-kit proabono
+cd my-proa-site
+proabono list
+proabono add dropdown-menu combobox drawer toast
 ```
+
+The registry is published to GitHub Pages on every push to `main`
+(`https://rickboy.github.io/proabono-kit/r`). To install from a local checkout
+instead, run `proabono build` and pass `--registry path/to/proabono-kit/dist/r`.
 
 `add` resolves dependencies and verifies each file's SHA-256 before writing
 anything. It copies sources into `src/components/` and assets into

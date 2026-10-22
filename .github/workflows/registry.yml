@@ -1,0 +1,48 @@
+name: Registry
+
+# Builds registry/ into dist/r and publishes it to GitHub Pages, which is the
+# default registry `proabono add` reads from:
+# https://rickboy.github.io/proabono-kit/r/{name}.json
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # rust-toolchain.toml pins the compiler; rustup installs it on first use.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cli
+      - name: Build CLI
+        run: cargo build --release --locked --manifest-path cli/Cargo.toml
+      - name: Build registry
+        run: cli/target/release/proabono build
+      - name: Smoke test
+        run: cli/target/release/proabono list --registry dist/r
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}r/index.json
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
