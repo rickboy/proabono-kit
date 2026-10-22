@@ -147,7 +147,7 @@ impl<Body> Drawer<Body> {
     }
 }
 
-struct Description {
+pub(super) struct Description {
     id: &'static str,
     text: Option<&'static str>,
 }
@@ -164,7 +164,7 @@ impl<L: DataLoader> WebRenderSync<L> for Description {
     }
 }
 
-struct Handle(DrawerSide);
+pub(super) struct Handle(DrawerSide);
 
 impl<L: DataLoader> WebRenderSync<L> for Handle {
     fn render(self, cx: &mut WebContext<L>) -> Result<(), WriteError> {
@@ -175,6 +175,20 @@ impl<L: DataLoader> WebRenderSync<L> for Handle {
             .render(cx),
             _ => Ok(()),
         }
+    }
+}
+
+/// Corner close button. Browser-only, so the Markdown view omits it.
+pub(super) struct CloseButton;
+
+impl<L: DataLoader> WebRenderSync<L> for CloseButton {
+    fn render(self, cx: &mut WebContext<L>) -> Result<(), WriteError> {
+        html_sync! {
+            <form method="dialog" class="pb-drawer-close">
+                <button type="submit" class="pb-icon-button" aria-label="Close">{icons::X}</button>
+            </form>
+        }
+        .render(cx)
     }
 }
 
@@ -196,11 +210,7 @@ impl<L: DataLoader, Body: WebRenderSync<L>> WebRenderSync<L> for Drawer<Body> {
                     <h2 id={text!("{}-title", id)} class="pb-drawer-title">{self.title}</h2>
                     {Description { id, text: self.description }}
                 </header>
-                <form method="dialog" class="pb-drawer-close">
-                    <button type="submit" class="pb-icon-button" aria-label="Close">
-                        {icons::X}
-                    </button>
-                </form>
+                {CloseButton}
                 <div class="pb-drawer-body">{self.body}</div>
             </dialog>
         }

@@ -126,7 +126,7 @@ impl<'a> Toaster<'a> {
     }
 }
 
-struct Description<'a>(Option<&'a str>);
+pub(super) struct Description<'a>(Option<&'a str>);
 
 impl<L: DataLoader> WebRenderSync<L> for Description<'_> {
     fn render(self, cx: &mut WebContext<L>) -> Result<(), WriteError> {
@@ -154,15 +154,27 @@ impl<L: DataLoader> WebRenderSync<L> for &Toast<'_> {
                     <p class="pb-toast-title">{self.title}</p>
                     {Description(self.description)}
                 </div>
-                <button
-                    type="button"
-                    class="pb-icon-button"
-                    data-pb-toast-close
-                    aria-label="Dismiss notification"
-                >
-                    {icons::X}
-                </button>
+                {DismissButton}
             </li>
+        }
+        .render(cx)
+    }
+}
+
+/// Close button. Browser-only, so the Markdown view omits it.
+pub(super) struct DismissButton;
+
+impl<L: DataLoader> WebRenderSync<L> for DismissButton {
+    fn render(self, cx: &mut WebContext<L>) -> Result<(), WriteError> {
+        html_sync! {
+            <button
+                type="button"
+                class="pb-icon-button"
+                data-pb-toast-close
+                aria-label="Dismiss notification"
+            >
+                {icons::X}
+            </button>
         }
         .render(cx)
     }

@@ -209,6 +209,9 @@
   .hidden {
     display: none;
   }
+  .inline {
+    display: inline;
+  }
   .h-full {
     height: 100%;
   }
