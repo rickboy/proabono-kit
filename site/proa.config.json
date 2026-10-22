@@ -1,0 +1,81 @@
+{
+  "$schema": "https://proa.so/schema/proa.config.json",
+  "application": {
+    "binary": "site",
+    "kind": "site",
+    "package": "site",
+    "starter": "blank",
+    "template": "minimal"
+  },
+  "build": {
+    "assets": [
+      {
+        "input": "styles/input.css",
+        "kind": "tailwind",
+        "output": "public/styles.css"
+      }
+    ],
+    "before": [],
+    "command": [
+      "cargo",
+      "build",
+      "--release"
+    ]
+  },
+  "database": {
+    "driver": "none"
+  },
+  "deploy": {
+    "provider": "none"
+  },
+  "dev": {
+    "before": [],
+    "command": [
+      "cargo",
+      "run"
+    ],
+    "watch": [
+      "src",
+      "styles",
+      "migrations",
+      "Cargo.toml",
+      "build.rs",
+      "proa.config.json",
+      "proa.lock.json",
+      "../registry"
+    ],
+    "port": 3001
+  },
+  "paths": {
+    "components": "src/components",
+    "endpoints": "src/endpoints",
+    "layouts": "src/layouts",
+    "models": "src/models",
+    "pages": "src/pages",
+    "public": "public",
+    "runtimeData": "data"
+  },
+  "registries": {
+    "@proa": "https://ui.proa.so/r/{name}.json"
+  },
+  "representations": {
+    "html": {
+      "enabled": true
+    },
+    "markdown": {
+      "enabled": false
+    }
+  },
+  "styling": {
+    "input": "styles/input.css",
+    "kind": "tailwind",
+    "output": "public/styles.css"
+  },
+  "tasks": {},
+  "test": {
+    "before": []
+  },
+  "ui": {
+    "provider": "none"
+  }
+}

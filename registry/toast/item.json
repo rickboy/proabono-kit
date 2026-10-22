@@ -1,0 +1,6 @@
+{
+  "name": "toast",
+  "module": "toast",
+  "description": "Sonner-style stacked notifications: server-rendered flash toasts plus window.proabono.toast() and data-pb-toast triggers.",
+  "dependencies": ["core"]
+}

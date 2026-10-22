@@ -1,0 +1,6 @@
+{
+  "name": "dropdown-menu",
+  "module": "dropdown_menu",
+  "description": "Menu button: native popover, arrow-key navigation, typeahead, links and actions.",
+  "dependencies": ["core"]
+}

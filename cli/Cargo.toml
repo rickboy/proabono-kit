@@ -1,0 +1,20 @@
+[package]
+name = "proabono"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.99"
+description = "Build and install proabono-kit components into Proa sites"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rickboy/proabono-kit"
+
+[[bin]]
+name = "proabono"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.10"
+ureq = "2"

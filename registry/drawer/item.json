@@ -1,0 +1,6 @@
+{
+  "name": "drawer",
+  "module": "drawer",
+  "description": "Slide-in panel from any edge on native <dialog>: focus trap, Escape, backdrop dismiss, no JS required in current browsers.",
+  "dependencies": ["core"]
+}

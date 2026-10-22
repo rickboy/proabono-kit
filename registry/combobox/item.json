@@ -1,0 +1,6 @@
+{
+  "name": "combobox",
+  "module": "combobox",
+  "description": "Searchable select: filters a server-rendered option list, submits the option value, degrades to an input with datalist.",
+  "dependencies": ["core"]
+}

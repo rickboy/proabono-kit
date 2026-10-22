@@ -1,0 +1,6 @@
+{
+  "name": "core",
+  "module": "_proabono",
+  "description": "Shared icons, theme tokens (proabono.css) and the progressive-enhancement runtime (proabono.js).",
+  "dependencies": []
+}
