@@ -1,0 +1,6 @@
+{
+  "name": "data-table",
+  "module": "data_table",
+  "description": "Typed-column table rendered on the server; the runtime adds sorting, filtering, counts and client-side paging.",
+  "dependencies": ["core"]
+}

@@ -9,6 +9,8 @@ the WAI-ARIA Authoring Practices patterns. No Proa UI Pro licence needed.
 | `combobox`      | Searchable select; submits the option value, degrades to an input + `<datalist>` |
 | `drawer`        | Slide-in panel from any edge on native `<dialog>`                           |
 | `toast`         | Sonner-style stacked notifications, server-rendered or from JS              |
+| `data-table`    | Typed columns over rows; runtime adds sorting, filter, live count, client paging |
+| `pagination`    | Server-side page links with ellipsis windowing; no JavaScript               |
 | `core`          | Icons, `proabono.css` (theme tokens + styles), `proabono.js` (runtime). Pulled in automatically |
 
 Everything renders as plain HTML on the server and works without JavaScript
@@ -33,7 +35,7 @@ site/                       Gallery: a Proa site that compiles registry/ in plac
 cargo install --git https://github.com/rickboy/proabono-kit proabono
 cd my-proa-site
 proabono list
-proabono add dropdown-menu combobox drawer toast
+proabono add dropdown-menu combobox drawer toast data-table pagination
 ```
 
 The registry is published to GitHub Pages on every push to `main`
@@ -98,6 +100,36 @@ html_sync! {
 use crate::components::toast::{Toast, ToastTone, Toaster};
 let flash = [Toast::new("Saved").tone(ToastTone::Success)];
 html_sync! { {Toaster::new(&flash)} }
+```
+
+```rust
+use crate::components::data_table::{Cell, Column, DataTable, SortDirection};
+
+struct Call { id: &'static str, district: &'static str, payout: &'static str, payout_cr: i64 }
+
+// Annotate the closure argument: builder chaining blocks inference.
+const COLUMNS: [Column<Call>; 3] = [
+    Column::new("Call", |c: &Call| Cell::Text(c.id)),
+    Column::new("District", |c: &Call| Cell::Text(c.district)).sortable(),
+    Column::new("Payout", |c: &Call| Cell::Sorted { text: c.payout, key: c.payout_cr })
+        .sortable()
+        .numeric(),
+];
+
+html_sync! {
+    {DataTable::new("calls", "Night shift calls", &COLUMNS, &calls)
+        .filter()
+        .page_size(10)
+        .sorted_by(0, SortDirection::Ascending)}
+}
+```
+
+Client-side sorting and paging suit hundreds of rows. For bigger data sets,
+sort and page on the server and render `Pagination` under the table:
+
+```rust
+use crate::components::pagination::Pagination;
+html_sync! { {Pagination::new(page, total_pages, "/calls?page=")} }
 ```
 
 ```js

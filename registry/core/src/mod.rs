@@ -10,4 +10,5 @@
 //! ```
 #![allow(dead_code, unused_imports)]
 
+pub mod attr;
 pub mod icons;

@@ -15,6 +15,13 @@ macro_rules! icon {
 }
 
 icon!(CHEVRON_DOWN, r#"<path d="m6 9 6 6 6-6"/>"#);
+icon!(CHEVRON_LEFT, r#"<path d="m15 18-6-6 6-6"/>"#);
+icon!(CHEVRON_RIGHT, r#"<path d="m9 18 6-6-6-6"/>"#);
+icon!(
+    ARROW_UP_DOWN,
+    r#"<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>"#
+);
+icon!(SEARCH, r#"<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>"#);
 icon!(CHEVRONS_UP_DOWN, r#"<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>"#);
 icon!(CHECK, r#"<path d="M20 6 9 17l-5-5"/>"#);
 icon!(X, r#"<path d="M18 6 6 18M6 6l12 12"/>"#);

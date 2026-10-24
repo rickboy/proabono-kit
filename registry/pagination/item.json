@@ -1,0 +1,6 @@
+{
+  "name": "pagination",
+  "module": "pagination",
+  "description": "Server-side page links with ellipsis windowing, aria-current and previous/next; no JavaScript.",
+  "dependencies": ["core"]
+}

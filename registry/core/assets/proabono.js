@@ -483,10 +483,137 @@
   });
 
   // ---------------------------------------------------------------------------
+  // Data table (sortable columns, text filter, live count, client paging)
+  // ---------------------------------------------------------------------------
+
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+  function pageWindow(page, total) {
+    // Same shape as the server Pagination component: 1 ... 4 5 6 ... 20
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    let start = Math.max(page - 1, 2);
+    let end = Math.min(page + 1, total - 1);
+    if (start <= 3) [start, end] = [2, 5];
+    else if (end >= total - 2) [start, end] = [total - 4, total - 1];
+    const items = [1];
+    if (start > 2) items.push(0);
+    for (let p = start; p <= end; p++) items.push(p);
+    if (end < total - 1) items.push(0);
+    items.push(total);
+    return items;
+  }
+
+  function initTable(root) {
+    if (root.dataset.pbReady !== undefined) return;
+    root.dataset.pbReady = "";
+
+    const tbody = root.querySelector("tbody");
+    const rows = [...tbody.rows];
+    const filterInput = root.querySelector("[data-pb-table-filter]");
+    const count = root.querySelector("[data-pb-table-count]");
+    const empty = root.querySelector("[data-pb-table-empty]");
+    const pager = root.querySelector("[data-pb-table-pager]");
+    const pageSize = Number(root.dataset.pageSize || 0);
+    const text = new Map(rows.map((r) => [r, r.textContent.toLowerCase()]));
+    let page = 1;
+    let matches = rows;
+
+    function render() {
+      const total = matches.length;
+      const pages = pageSize ? Math.max(1, Math.ceil(total / pageSize)) : 1;
+      page = Math.min(page, pages);
+      const from = pageSize ? (page - 1) * pageSize : 0;
+      const to = pageSize ? Math.min(from + pageSize, total) : total;
+      const visible = new Set(matches.slice(from, to));
+      for (const row of rows) row.hidden = !visible.has(row);
+
+      if (empty) empty.hidden = total > 0;
+      if (count) {
+        const of = total === rows.length ? `${rows.length}` : `${total} of ${rows.length}`;
+        count.textContent = total === 0 ? `0 of ${rows.length} rows` : pageSize && pages > 1 ? `${from + 1}-${to} of ${of} rows` : `${of} rows`;
+      }
+      if (pager) renderPager(pages);
+    }
+
+    function renderPager(pages) {
+      pager.hidden = pages <= 1;
+      if (pages <= 1) return;
+      const button = (label, target, attrs = "") =>
+        `<li><button type="button" class="pb-page-link" data-page="${target}" ${attrs}>${label}</button></li>`;
+      const parts = [
+        button("Previous", page - 1, `data-step="prev" ${page === 1 ? 'aria-disabled="true"' : ""}`),
+        ...pageWindow(page, pages).map((p) =>
+          p === 0
+            ? '<li class="pb-page-gap" aria-hidden="true">...</li>'
+            : button(String(p), p, `aria-label="Page ${p}" ${p === page ? 'aria-current="page"' : ""}`),
+        ),
+        button("Next", page + 1, `data-step="next" ${page === pages ? 'aria-disabled="true"' : ""}`),
+      ];
+      pager.innerHTML = `<ul>${parts.join("")}</ul>`;
+    }
+
+    function sortBy(index, direction) {
+      const th = root.querySelectorAll("thead th")[index];
+      const numeric = th?.hasAttribute("data-numeric");
+      const value = (row) => {
+        const cell = row.cells[index];
+        if (!cell) return "";
+        if (cell.dataset.sort !== undefined) return Number(cell.dataset.sort);
+        return numeric ? Number(cell.textContent.replace(/[^\d.-]/g, "")) : cell.textContent.trim();
+      };
+      const sign = direction === "descending" ? -1 : 1;
+      const sorted = [...rows].sort((a, b) => {
+        const x = value(a);
+        const y = value(b);
+        const order = typeof x === "number" && typeof y === "number" ? x - y : collator.compare(String(x), String(y));
+        return order * sign;
+      });
+      tbody.append(...sorted);
+      rows.splice(0, rows.length, ...sorted);
+      const matching = new Set(matches);
+      matches = rows.filter((r) => matching.has(r));
+      root.querySelectorAll("thead th").forEach((h, i) => {
+        if (i === index) h.setAttribute("aria-sort", direction);
+        else h.removeAttribute("aria-sort");
+      });
+    }
+
+    root.addEventListener("click", (e) => {
+      const target = e.target instanceof Element ? e.target : null;
+      const sort = target?.closest("[data-pb-sort]");
+      if (sort) {
+        const th = sort.closest("th");
+        const next = th.getAttribute("aria-sort") === "ascending" ? "descending" : "ascending";
+        sortBy(Number(sort.dataset.pbSort), next);
+        page = 1;
+        render();
+        return;
+      }
+      const pageButton = target?.closest("[data-page]");
+      if (pageButton && pageButton.getAttribute("aria-disabled") !== "true") {
+        page = Number(pageButton.dataset.page);
+        render();
+        // Keep keyboard users on the pager after it re-renders.
+        pager.querySelector(`[data-page="${page}"]:not([data-step])`)?.focus();
+      }
+    });
+
+    filterInput?.addEventListener("input", () => {
+      const q = filterInput.value.trim().toLowerCase();
+      matches = q ? rows.filter((r) => text.get(r).includes(q)) : rows;
+      page = 1;
+      render();
+    });
+
+    render();
+  }
+
+  // ---------------------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------------------
 
   function init(root = document) {
+    root.querySelectorAll("[data-pb-table]").forEach(initTable);
     root.querySelectorAll("[data-pb-combobox]").forEach(initCombobox);
     root.querySelectorAll("[data-pb-toaster]").forEach(bindToaster);
   }
@@ -495,6 +622,7 @@
     for (const record of records) {
       for (const node of record.addedNodes) {
         if (node instanceof Element) {
+          if (node.matches("[data-pb-table]")) initTable(node);
           if (node.matches("[data-pb-combobox]")) initCombobox(node);
           if (node.matches("[data-pb-toaster]")) bindToaster(node);
           init(node);

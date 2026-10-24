@@ -2,6 +2,8 @@ use proa_core::{DataLoader, StaticRaw, WebContext, WebRenderSync, WriteError};
 use proa_macros::html_sync;
 
 use crate::components::combobox::{ComboOption, Combobox};
+use crate::components::data_table::{Cell, Column, DataTable, SortDirection};
+use crate::components::pagination::Pagination;
 use crate::components::drawer::{Drawer, DrawerClose, DrawerSide, DrawerTrigger};
 use crate::components::dropdown_menu::{DropdownMenu, MenuAlign, MenuItem};
 use crate::components::toast::{Toast, ToastTone, Toaster};
@@ -84,8 +86,84 @@ impl<L: DataLoader> WebRenderSync<L> for DrawerBody {
     }
 }
 
+struct Call {
+    id: &'static str,
+    district: &'static str,
+    kind: &'static str,
+    precedence: &'static str,
+    minutes: i64,
+    payout: &'static str,
+    payout_cr: i64,
+}
+
+const fn call(
+    id: &'static str,
+    district: &'static str,
+    kind: &'static str,
+    precedence: &'static str,
+    minutes: i64,
+    payout: &'static str,
+    payout_cr: i64,
+) -> Call {
+    Call {
+        id,
+        district,
+        kind,
+        precedence,
+        minutes,
+        payout,
+        payout_cr,
+    }
+}
+
+const CALLS: [Call; 24] = [
+    call("C-0412", "Midstack", "Gang crossfire", "Urgent", 38, "4,200 cr", 4200),
+    call("C-0413", "Spire", "Club overdose", "Priority", 22, "9,800 cr", 9800),
+    call("C-0414", "Undercity", "Structure collapse", "Urgent", 51, "1,150 cr", 1150),
+    call("C-0415", "Midstack", "Transit crash", "Urgent-Surgical", 44, "3,600 cr", 3600),
+    call("C-0416", "Undercity", "Chrome rejection", "Priority", 29, "640 cr", 640),
+    call("C-0417", "Spire", "Executive extraction", "Urgent", 17, "14,500 cr", 14500),
+    call("C-0418", "Midstack", "Workplace accident", "Routine", 33, "1,900 cr", 1900),
+    call("C-0419", "Undercity", "Mass casualty", "Urgent", 58, "2,300 cr", 2300),
+    call("C-0420", "Spire", "Corp sabotage", "Urgent-Surgical", 26, "11,200 cr", 11200),
+    call("C-0421", "Midstack", "Downed courier", "Urgent", 47, "5,050 cr", 5050),
+    call("C-0422", "Undercity", "Scav ambush", "Priority", 40, "0 cr", 0),
+    call("C-0423", "Midstack", "Rooftop fall", "Priority", 19, "2,750 cr", 2750),
+    call("C-0424", "Spire", "Insurance dispute", "Routine", 12, "6,400 cr", 6400),
+    call("C-0425", "Undercity", "Smog inhalation", "Routine", 35, "380 cr", 380),
+    call("C-0426", "Midstack", "Market stabbing", "Urgent", 24, "3,100 cr", 3100),
+    call("C-0427", "Spire", "Drone strike", "Urgent-Surgical", 31, "12,900 cr", 12900),
+    call("C-0428", "Undercity", "Hoist rescue", "Urgent", 55, "1,700 cr", 1700),
+    call("C-0429", "Midstack", "Gang crossfire", "Urgent", 42, "4,450 cr", 4450),
+    call("C-0430", "Spire", "Gala poisoning", "Priority", 15, "8,300 cr", 8300),
+    call("C-0431", "Undercity", "Flooded tunnel", "Urgent", 49, "990 cr", 990),
+    call("C-0432", "Midstack", "Signage collapse", "Priority", 27, "2,050 cr", 2050),
+    call("C-0433", "Spire", "VIP cardiac arrest", "Urgent", 9, "16,000 cr", 16000),
+    call("C-0434", "Undercity", "Feral swarm", "Urgent", 53, "1,400 cr", 1400),
+    call("C-0435", "Midstack", "Rival crew clash", "Priority", 36, "2,600 cr", 2600),
+];
+
+const CALL_COLUMNS: [Column<Call>; 6] = [
+    Column::new("Call", |c: &Call| Cell::Text(c.id)),
+    Column::new("District", |c: &Call| Cell::Text(c.district)).sortable(),
+    Column::new("Type", |c: &Call| Cell::Text(c.kind)).sortable(),
+    Column::new("Precedence", |c: &Call| Cell::Text(c.precedence)).sortable(),
+    Column::new("Minutes", |c: &Call| Cell::Int(c.minutes))
+        .sortable()
+        .numeric(),
+    Column::new("Payout", |c: &Call| Cell::Sorted {
+        text: c.payout,
+        key: c.payout_cr,
+    })
+    .sortable()
+    .numeric(),
+];
+
 #[derive(Debug, Clone, Copy)]
-pub struct HomePage;
+pub struct HomePage {
+    /// Current page for the server-side pagination demo (`?page=`).
+    pub page: u32,
+}
 
 impl<L: DataLoader> WebRenderSync<L> for HomePage {
     fn render(self, cx: &mut WebContext<L>) -> Result<(), WriteError> {
@@ -195,6 +273,24 @@ impl<L: DataLoader> WebRenderSync<L> for HomePage {
                         </button>
                     </div>
                 </section>
+                <section aria-labelledby="data-table" class={SECTION}>
+                    <h2 id="data-table" class={H2}>"Data table"</h2>
+                    <p class={LEDE}>
+                        "Typed columns over a slice of rows, rendered on the server. The runtime adds sortable headers, a filter, a live count and client-side paging. Without JavaScript it is a plain accessible table."
+                    </p>
+                    {DataTable::new("calls", "Night shift calls", &CALL_COLUMNS, &CALLS)
+                        .filter()
+                        .page_size(8)
+                        .sorted_by(0, SortDirection::Ascending)}
+                </section>
+                <section aria-labelledby="pagination" class={SECTION}>
+                    <h2 id="pagination" class={H2}>"Pagination"</h2>
+                    <p class={LEDE}>
+                        "Server-rendered page links: no JavaScript. Pass a prefix and the page number is appended. These links set ?page= on this gallery."
+                    </p>
+                    {Pagination::new(self.page, 20, "/?page=")}
+                    {Pagination::new(self.page.min(4), 4, "/?page=").label("Short pagination")}
+                </section>
                 <section aria-labelledby="theming" class={SECTION}>
                     <h2 id="theming" class={H2}>"Theming"</h2>
                     <p class={LEDE}>
@@ -212,7 +308,7 @@ impl<L: DataLoader> WebRenderSync<L> for HomePage {
                     <h2 id="install" class={H2}>"Install"</h2>
                     <pre class={CODE}>
                         <code>
-                            "cargo install --git https://github.com/rickboy/proabono-kit proabono\ncd my-proa-site\nproabono add dropdown-menu combobox drawer toast"
+                            "cargo install --git https://github.com/rickboy/proabono-kit proabono\ncd my-proa-site\nproabono add dropdown-menu combobox drawer toast data-table pagination"
                         </code>
                     </pre>
                     <p class={LEDE}>
@@ -232,15 +328,22 @@ impl<L: DataLoader> WebRenderSync<L> for HomePage {
     }
 }
 
-use axum::response::IntoResponse;
+use axum::{extract::Query, response::IntoResponse};
 use proa_framework_axum::RouteResponse;
+use serde::Deserialize;
 
 use crate::{error::AppError, layouts::RootDocument};
 
-pub async fn handler() -> Result<impl IntoResponse, AppError> {
+#[derive(Deserialize)]
+pub struct HomeQuery {
+    page: Option<u32>,
+}
+
+pub async fn handler(Query(query): Query<HomeQuery>) -> Result<impl IntoResponse, AppError> {
+    let page = query.page.unwrap_or(1).clamp(1, 20);
     let html = RouteResponse::ssr_async(RootDocument {
         title: "proabono-kit · Free Proa components",
-        content: proa_core::to_async(HomePage),
+        content: proa_core::to_async(HomePage { page }),
     });
     Ok(html)
 }
