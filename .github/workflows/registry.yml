@@ -1,8 +1,10 @@
-name: Registry
+name: Pages
 
-# Builds registry/ into dist/r and publishes it to GitHub Pages, which is the
-# default registry `proabono add` reads from:
-# https://rickboy.github.io/proabono-kit/r/{name}.json
+# Publishes to https://rickboy.github.io/proabono-kit/ on every push to main:
+#   r/          the component registry `proabono add` reads by default
+#   index.html  landing page rendered from r/index.json
+#   gallery/    static snapshot of the gallery site
+# pages/build.sh does the work and runs the same way locally.
 
 on:
   push:
@@ -18,6 +20,10 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  TAILWIND_VERSION: "4.3.3"
+  TAILWIND_SHA256: dc61b3ac6b8c9ca874c0cc4c57b2409791a64c5540404ca5f5367360babc313a
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,13 +32,26 @@ jobs:
       # rust-toolchain.toml pins the compiler; rustup installs it on first use.
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: cli
-      - name: Build CLI
-        run: cargo build --release --locked --manifest-path cli/Cargo.toml
-      - name: Build registry
-        run: cli/target/release/proabono build
+          workspaces: |
+            cli
+            site
+      - name: Install Tailwind CSS CLI
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/tailwindcss" \
+            "https://github.com/tailwindlabs/tailwindcss/releases/download/v${TAILWIND_VERSION}/tailwindcss-linux-x64"
+          echo "${TAILWIND_SHA256}  $RUNNER_TEMP/tailwindcss" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/tailwindcss"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Gallery tests
+        run: cargo test --locked --manifest-path site/Cargo.toml --test components
+      - name: Build registry, landing page and gallery
+        run: bash pages/build.sh
       - name: Smoke test
-        run: cli/target/release/proabono list --registry dist/r
+        run: |
+          cli/target/release/proabono list --registry dist/r
+          test -s dist/index.html
+          test -s dist/gallery/index.html
+          test -s dist/gallery/page-20.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
@@ -42,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}r/index.json
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4

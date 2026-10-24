@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>proabono-kit · Free Proa components</title>
+  <meta name="description" content="Free, source-owned components for Proa sites: dropdown menu, combobox, drawer, toast, data table, pagination, menubar, context menu and command palette. MIT OR Apache-2.0." />
+  <link rel="icon" href="gallery/static/favicon.svg" />
+  <style>
+    :root {
+      --fg: #0f1115; --muted: #5f6470; --bg: #ffffff; --panel: #f6f7f9; --line: rgb(15 17 21 / 0.12);
+      --accent: #2563eb; --accent-fg: #ffffff; --radius: 10px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --fg: #f2f2f4; --muted: #a0a0ac; --bg: #0d0e12; --panel: #16171c; --line: rgb(242 242 244 / 0.12); --accent: #60a5fa; --accent-fg: #0b0c10; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; }
+    code { font-family: var(--mono); font-size: 0.875em; }
+    .wrap { max-width: 64rem; margin: 0 auto; padding: 0 1rem; }
+    @media (min-width: 40rem) { .wrap { padding: 0 1.5rem; } }
+    header.site { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
+    header.site a { text-decoration: none; font-weight: 600; }
+    header.site nav { display: flex; gap: 1.25rem; font-size: 0.9rem; color: var(--muted); }
+    header.site nav a:hover { color: var(--fg); }
+    .hero { padding: 4rem 0 3rem; }
+    .eyebrow { margin: 0; font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+    h1 { margin: 0.75rem 0 1rem; font-size: clamp(2.25rem, 6vw, 3.5rem); line-height: 1.05; letter-spacing: -0.03em; }
+    .lede { max-width: 42rem; margin: 0; font-size: 1.125rem; color: var(--muted); }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.1rem; border: 1px solid var(--line); border-radius: var(--radius); font-size: 0.95rem; font-weight: 500; text-decoration: none; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    section { padding: 3rem 0; border-top: 1px solid var(--line); }
+    h2 { margin: 0 0 0.5rem; font-size: 1.5rem; letter-spacing: -0.01em; }
+    .sub { margin: 0 0 1.75rem; color: var(--muted); max-width: 42rem; }
+    ol.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 1.25rem; counter-reset: step; }
+    ol.steps li { counter-increment: step; display: grid; grid-template-columns: 2rem 1fr; gap: 0.75rem; }
+    ol.steps li::before { content: counter(step); display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid var(--line); border-radius: 50%; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+    ol.steps p { margin: 0.2rem 0 0.5rem; }
+    pre { margin: 0; padding: 0.875rem 1rem; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); font-family: var(--mono); font-size: 0.8125rem; line-height: 1.6; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); }
+    .card { display: flex; flex-direction: column; gap: 0.75rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); scroll-margin-top: 1rem; }
+    .card header { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+    .card h3 { margin: 0; font-size: 1.05rem; }
+    .card p { margin: 0; font-size: 0.9rem; color: var(--muted); }
+    .version { color: var(--muted); font-size: 0.75rem; }
+    .deps { font-size: 0.8rem !important; }
+    .cmd { display: flex; align-items: center; gap: 0.5rem; margin-top: auto; padding: 0.4rem 0.4rem 0.4rem 0.75rem; border: 1px solid var(--line); border-radius: calc(var(--radius) - 2px); background: var(--bg); }
+    .cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-size: 0.8rem; }
+    .cmd button { padding: 0.25rem 0.6rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); font: inherit; font-size: 0.75rem; cursor: pointer; }
+    .demo { font-size: 0.85rem; font-weight: 500; color: var(--accent); text-decoration: none; }
+    .demo::after { content: " \2192"; }
+    .facts { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); margin: 0; padding: 0; list-style: none; }
+    .facts li { padding: 1rem 1.25rem; border-left: 2px solid var(--accent); background: var(--panel); border-radius: 0 var(--radius) var(--radius) 0; }
+    .facts strong { display: block; margin-bottom: 0.25rem; }
+    .facts span { color: var(--muted); font-size: 0.9rem; }
+    footer { padding: 2rem 0 3rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="site">
+      <a href="./">proabono-kit</a>
+      <nav aria-label="Primary">
+        <a href="#components">Components</a>
+        <a href="gallery/">Gallery</a>
+        <a href="{{REPO}}">GitHub</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="hero">
+        <p class="eyebrow">For Proa sites · MIT OR Apache-2.0</p>
+        <h1>Free Proa components</h1>
+        <p class="lede">
+          {{COUNT}} source-owned components written from the WAI-ARIA patterns. The HTML is rendered on the server and works without
+          JavaScript where the platform allows; a small runtime adds keyboard support. Every file lands in your repo,
+          so you can change any of it.
+        </p>
+        <div class="actions">
+          <a class="btn primary" href="gallery/">Open the live gallery</a>
+          <a class="btn" href="#install">Install</a>
+          <a class="btn" href="{{REPO}}">Source on GitHub</a>
+        </div>
+      </div>
+
+      <section aria-labelledby="install">
+        <h2 id="install">Install</h2>
+        <p class="sub">Install the <code>proabono</code> tool once. In any Proa site, add components by name. Dependencies come along, and every file is checked against its SHA-256 before anything is written.</p>
+        <ol class="steps">
+          <li>
+            <div>
+              <p>Install the installer.</p>
+              <pre><code>cargo install --git {{REPO}} proabono</code></pre>
+            </div>
+          </li>
+          <li>
+            <div>
+              <p>Add components from inside your Proa site.</p>
+              <pre><code>proabono add {{ALL}}</code></pre>
+            </div>
+          </li>
+          <li>
+            <div>
+              <p>Link the stylesheet and runtime once in <code>src/layouts/root.rs</code>, after your own stylesheet.</p>
+              <pre><code>&lt;link rel="stylesheet" href="/static/proa/proabono/proabono.css" /&gt;
+&lt;script src="/static/proa/proabono/proabono.js" defer&gt;&lt;/script&gt;</code></pre>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section aria-labelledby="components">
+        <h2 id="components">Components</h2>
+        <p class="sub">Built from the published registry. <code>core</code> is installed automatically with the first component.</p>
+        <div class="grid">{{CARDS}}
+        </div>
+      </section>
+
+      <section aria-labelledby="why">
+        <h2 id="why">Why</h2>
+        <ul class="facts">
+          <li><strong>No licence fee</strong><span>Dropdown menu, combobox, drawer, toast, data table and menubar are paid Proa UI Pro components. Here they are free.</span></li>
+          <li><strong>Server first</strong><span>Native popover, &lt;dialog&gt; and datalist do the work; the runtime adds keyboard support.</span></li>
+          <li><strong>Yours to edit</strong><span>Plain Rust and CSS in your repo. A lock file records versions; local edits are never silently overwritten.</span></li>
+          <li><strong>Themeable</strong><span>Override the <code>--pb-*</code> custom properties to match your design tokens.</span></li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      Not affiliated with Proa Labs. Registry: <a href="r/index.json">r/index.json</a> · <a href="{{REPO}}">{{REPO}}</a>
+    </footer>
+  </div>
+
+  <script>
+    // Copy buttons. Without JavaScript the commands are still selectable text.
+    document.addEventListener("click", async (e) => {
+      const button = e.target.closest("[data-copy]");
+      if (!button) return;
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy);
+        const label = button.textContent;
+        button.textContent = "Copied";
+        setTimeout(() => (button.textContent = label), 1500);
+      } catch {
+        button.textContent = "Select and copy";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 # proabono-kit
 
+**Site and live gallery:** https://rickboy.github.io/proabono-kit/
+
 Free, source-owned components for [Proa](https://proa.so) sites, built from
 the WAI-ARIA Authoring Practices patterns. No Proa UI Pro licence needed.
 
@@ -191,6 +193,18 @@ Override the `--pb-*` custom properties on `:root` or on any wrapper. For exampl
 Light and dark defaults follow `prefers-color-scheme`. To force one, set
 `data-pb-theme="light|dark"` on `<html>`. Styles live in the `components`
 cascade layer, so Tailwind utilities passed through `class` win.
+
+## GitHub Pages
+
+Every push to `main` runs `pages/build.sh` in CI and publishes `dist/`:
+
+- `r/`: the registry `proabono add` reads by default
+- `index.html`: landing page rendered from `r/index.json` (`pages/render_landing.py`)
+- `gallery/`: a static snapshot of the gallery site (`pages/export_gallery.py`). The
+  components are interactive because the runtime is client-side; the
+  server-side pagination demo is pre-rendered as `page-N.html`.
+
+Run `bash pages/build.sh` locally to get the same output (needs `tailwindcss` on `PATH`).
 
 ## Develop
 
