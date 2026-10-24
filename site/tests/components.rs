@@ -91,3 +91,91 @@ fn pagination_marks_current_and_disables_ends() {
     assert!(out.contains(r#"aria-disabled="true" data-step="prev""#), "{out}");
     assert!(out.contains(r#"href="/list?page=2" rel="next""#), "{out}");
 }
+
+// ---------------------------------------------------------------------------
+// Batch 2: menubar, context menu, command palette
+// ---------------------------------------------------------------------------
+
+use components::command_palette::{Command, CommandGroup, CommandPalette};
+use components::context_menu::ContextMenu;
+use components::dropdown_menu::MenuItem;
+use components::menubar::{Menubar, MenubarMenu};
+
+const FILE: [MenuItem; 2] = [
+    MenuItem::action("New", "new"),
+    MenuItem::link("Docs", "/docs"),
+];
+const EDIT: [MenuItem; 1] = [MenuItem::action("Undo", "undo")];
+const MENUS: [MenubarMenu; 2] = [
+    MenubarMenu::new("m-file", "File", &FILE),
+    MenubarMenu::new("m-edit", "Edit", &EDIT),
+];
+
+#[test]
+fn menubar_wires_each_trigger_to_its_menu() {
+    let out = html(Menubar::new("App", &MENUS));
+    assert!(out.contains(r#"role="menubar" aria-label="App""#), "{out}");
+    for id in ["m-file", "m-edit"] {
+        assert!(out.contains(&format!(r#"id="{id}-trigger""#)), "{out}");
+        assert!(out.contains(&format!(r#"popovertarget="{id}""#)), "{out}");
+        assert!(out.contains(&format!(r#"aria-labelledby="{id}-trigger""#)), "{out}");
+    }
+    // Every trigger stays tabbable until the runtime installs roving focus.
+    assert!(!out.contains("tabindex=\"-1\" class=\"pb-menubar-trigger\""), "{out}");
+    let md = markdown(Menubar::new("App", &MENUS));
+    assert!(md.contains("**File**") && md.contains("[Docs](/docs)") && md.contains("Undo"), "{md}");
+}
+
+struct Card;
+
+impl<L: proa_core::DataLoader> WebRenderSync<L> for Card {
+    fn render(self, cx: &mut WebContext<L>) -> Result<(), proa_core::WriteError> {
+        proa_macros::html_sync! {
+            <p>"Juno"</p>
+        }.render(cx)
+    }
+}
+
+impl<L: proa_core::DataLoader, B: proa_core::WriteBuf> MdRenderSync<L, B> for Card {
+    fn render_md(self, cx: &mut WebContext<L, B>) -> Result<(), proa_core::WriteError> {
+        proa_macros::md_sync! { "Juno" }.render_md(cx)
+    }
+}
+
+#[test]
+fn context_menu_targets_its_menu_and_markdown_keeps_only_content() {
+    let out = html(ContextMenu::new("ctx", "Crew actions", &FILE, Card));
+    assert!(out.contains(r#"data-pb-context-target="ctx" tabindex="0""#), "{out}");
+    assert!(out.contains(r#"id="ctx" popover role="menu" aria-label="Crew actions""#), "{out}");
+    let quiet = html(ContextMenu::new("ctx", "Crew actions", &FILE, Card).not_focusable());
+    assert!(!quiet.contains("tabindex=\"0\""), "{quiet}");
+    let md = markdown(ContextMenu::new("ctx", "Crew actions", &FILE, Card));
+    assert!(md.contains("Juno") && !md.contains("New"), "{md}");
+}
+
+const NAV: [Command; 2] = [
+    Command::link("Home", "/"),
+    Command::link("Devlog", "/devlog").keywords("blog news"),
+];
+const ACTIONS: [Command; 1] = [Command::action("Toggle theme", "theme").shortcut("Ctrl+T")];
+const GROUPS: [CommandGroup; 2] = [
+    CommandGroup::new("Go to", &NAV),
+    CommandGroup::new("Actions", &ACTIONS),
+];
+
+#[test]
+fn command_palette_options_are_unique_and_typed() {
+    let out = html(CommandPalette::new("cmd", &GROUPS));
+    for id in ["cmd-0-0", "cmd-0-1", "cmd-1-0"] {
+        assert_eq!(out.matches(&format!(r#"id="{id}""#)).count(), 1, "{id} in {out}");
+    }
+    assert!(out.contains(r#"data-hotkey="k""#), "{out}");
+    assert!(out.contains(r#"href="/devlog""#) && out.contains(r#"data-keywords="blog news""#), "{out}");
+    assert!(out.contains(r#"data-value="theme""#), "{out}");
+    assert_eq!(out.matches(r#"role="option""#).count(), 3, "{out}");
+    assert_eq!(out.matches(r#"aria-selected="false""#).count(), 3, "{out}");
+    let no_hotkey = html(CommandPalette::new("cmd", &GROUPS).hotkey(None));
+    assert!(!no_hotkey.contains("data-hotkey"), "{no_hotkey}");
+    let md = markdown(CommandPalette::new("cmd", &GROUPS));
+    assert!(md.contains("**Go to**") && md.contains("- [Devlog](/devlog)") && md.contains("- Toggle theme"), "{md}");
+}

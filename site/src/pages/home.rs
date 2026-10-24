@@ -2,6 +2,9 @@ use proa_core::{DataLoader, StaticRaw, WebContext, WebRenderSync, WriteError};
 use proa_macros::html_sync;
 
 use crate::components::combobox::{ComboOption, Combobox};
+use crate::components::command_palette::{Command, CommandGroup, CommandPalette, CommandTrigger};
+use crate::components::context_menu::ContextMenu;
+use crate::components::menubar::{Menubar, MenubarMenu};
 use crate::components::data_table::{Cell, Column, DataTable, SortDirection};
 use crate::components::pagination::Pagination;
 use crate::components::drawer::{Drawer, DrawerClose, DrawerSide, DrawerTrigger};
@@ -80,6 +83,85 @@ impl<L: DataLoader> WebRenderSync<L> for DrawerBody {
                     {DrawerClose::new("Cancel").value("cancel")}
                     {DrawerClose::new("Save").value("save").class("!border-[var(--pb-accent)] !bg-[var(--pb-accent)] !text-[var(--pb-accent-fg)]")}
                 </div>
+            </div>
+        }
+        .render(cx)
+    }
+}
+
+const FILE_MENU: [MenuItem; 6] = [
+    MenuItem::action("New shift", "new-shift").shortcut("Ctrl+N"),
+    MenuItem::action("Open save...", "open").shortcut("Ctrl+O"),
+    MenuItem::SEPARATOR,
+    MenuItem::action("Export care record", "export"),
+    MenuItem::SEPARATOR,
+    MenuItem::action("Quit to hangar", "quit").danger(),
+];
+
+const EDIT_MENU: [MenuItem; 4] = [
+    MenuItem::action("Undo", "undo").shortcut("Ctrl+Z"),
+    MenuItem::action("Redo", "redo").shortcut("Ctrl+Y").disabled(),
+    MenuItem::SEPARATOR,
+    MenuItem::action("Preferences", "preferences"),
+];
+
+const VIEW_MENU: [MenuItem; 4] = [
+    MenuItem::label("Camera"),
+    MenuItem::action("Isometric", "iso"),
+    MenuItem::action("Top down", "top"),
+    MenuItem::link("Docs", "#menus"),
+];
+
+const MENUBAR: [MenubarMenu; 3] = [
+    MenubarMenu::new("mb-file", "File", &FILE_MENU),
+    MenubarMenu::new("mb-edit", "Edit", &EDIT_MENU),
+    MenubarMenu::new("mb-view", "View", &VIEW_MENU),
+];
+
+const CREW_CONTEXT: [MenuItem; 5] = [
+    MenuItem::action("Swap to Juno", "swap").shortcut("1"),
+    MenuItem::action("Order: Follow", "follow"),
+    MenuItem::action("Order: Hold", "hold"),
+    MenuItem::SEPARATOR,
+    MenuItem::action("Dismiss from crew", "dismiss").danger(),
+];
+
+const NAV_COMMANDS: [Command; 3] = [
+    Command::link("Data table", "#data-table").keywords("grid rows sort"),
+    Command::link("Pagination", "#pagination").keywords("pages"),
+    Command::link("Install", "#install").keywords("cargo setup"),
+];
+
+const ACTION_COMMANDS: [Command; 4] = [
+    Command::action("Toggle theme", "theme").keywords("dark light mode"),
+    Command::action("Open drawer", "drawer").keywords("panel sheet"),
+    Command::action("Show a toast", "toast").keywords("notify notification"),
+    Command::action("Dispatch next call", "dispatch").shortcut("Ctrl+D"),
+];
+
+const COMMAND_GROUPS: [CommandGroup; 2] = [
+    CommandGroup::new("Go to", &NAV_COMMANDS),
+    CommandGroup::new("Actions", &ACTION_COMMANDS),
+];
+
+/// Turns menu and palette events into toasts so the demo shows what fired.
+const EVENTS_SCRIPT: StaticRaw = StaticRaw(
+    r#"<script>
+document.addEventListener("proabono:select",e=>{if(e.target.id==="theme-switch")return;window.proabono.toast({title:e.detail.label,description:"proabono:select from #"+e.target.id});});
+document.addEventListener("proabono:command",e=>{const v=e.detail.value;if(v==="theme"){const d=document.documentElement;d.dataset.pbTheme=d.dataset.pbTheme==="light"?"dark":"light";d.style.colorScheme=d.dataset.pbTheme;}else if(v==="drawer"){document.getElementById("drawer-right").showModal();return;}window.proabono.toast({title:e.detail.label,description:"proabono:command"});});
+</script>"#,
+);
+
+struct CrewCardDemo;
+
+impl<L: DataLoader> WebRenderSync<L> for CrewCardDemo {
+    fn render(self, cx: &mut WebContext<L>) -> Result<(), WriteError> {
+        html_sync! {
+            <div class="grid gap-1 rounded-lg border border-dashed border-[var(--pb-border)] p-6">
+                <p class="font-semibold">"Juno Reyes · Pilot"</p>
+                <p class="text-sm text-[var(--pb-muted)]">
+                    "Right-click this card, long-press on touch, or focus it and press Shift+F10."
+                </p>
             </div>
         }
         .render(cx)
@@ -273,6 +355,21 @@ impl<L: DataLoader> WebRenderSync<L> for HomePage {
                         </button>
                     </div>
                 </section>
+                <section aria-labelledby="menus" class={SECTION}>
+                    <h2 id="menus" class={H2}>"Menubar, context menu, command palette"</h2>
+                    <p class={LEDE}>
+                        "All three reuse the dropdown menu's items and keyboard handling, or the combobox's list logic. Events show up as toasts."
+                    </p>
+                    {Menubar::new("Shift", &MENUBAR)}
+                    {ContextMenu::new("crew-context", "Crew actions", &CREW_CONTEXT, CrewCardDemo)}
+                    <div class="flex flex-wrap items-center gap-3">
+                        {CommandTrigger::new("palette", "Search commands...")}
+                        <span class="text-sm text-[var(--pb-muted)]">
+                            "or press Ctrl+K (Cmd+K on Mac)"
+                        </span>
+                    </div>
+                    {CommandPalette::new("palette", &COMMAND_GROUPS)}
+                </section>
                 <section aria-labelledby="data-table" class={SECTION}>
                     <h2 id="data-table" class={H2}>"Data table"</h2>
                     <p class={LEDE}>
@@ -308,7 +405,7 @@ impl<L: DataLoader> WebRenderSync<L> for HomePage {
                     <h2 id="install" class={H2}>"Install"</h2>
                     <pre class={CODE}>
                         <code>
-                            "cargo install --git https://github.com/rickboy/proabono-kit proabono\ncd my-proa-site\nproabono add dropdown-menu combobox drawer toast data-table pagination"
+                            "cargo install --git https://github.com/rickboy/proabono-kit proabono\ncd my-proa-site\nproabono add dropdown-menu combobox drawer toast data-table pagination menubar context-menu command-palette"
                         </code>
                     </pre>
                     <p class={LEDE}>
@@ -322,6 +419,7 @@ impl<L: DataLoader> WebRenderSync<L> for HomePage {
                 </section>
                 {Toaster::new(&WELCOME)}
                 {THEME_SCRIPT}
+                {EVENTS_SCRIPT}
             </main>
         }
         .render(cx)

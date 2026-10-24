@@ -1,0 +1,6 @@
+{
+  "name": "command-palette",
+  "module": "command_palette",
+  "description": "Ctrl/Cmd+K search-and-run dialog over grouped commands (links or actions); shares the combobox list logic.",
+  "dependencies": ["core"]
+}

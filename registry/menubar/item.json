@@ -1,0 +1,6 @@
+{
+  "name": "menubar",
+  "module": "menubar",
+  "description": "Desktop-style row of menus: roving focus, Left/Right between open menus, hover switching. Reuses dropdown-menu items.",
+  "dependencies": ["core", "dropdown-menu"]
+}

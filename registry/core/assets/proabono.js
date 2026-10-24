@@ -24,11 +24,15 @@
     items[(index + items.length) % items.length].focus();
   };
 
-  const triggerFor = (menu) => document.getElementById(menu.getAttribute("aria-labelledby"));
+  // Element that opened each menu, for focus return. Menu buttons are found
+  // through aria-labelledby; context menus record their target here.
+  const openers = new WeakMap();
+  const triggerFor = (menu) =>
+    openers.get(menu) ?? document.getElementById(menu.getAttribute("aria-labelledby"));
 
   // Only used where CSS anchor positioning is unavailable.
   function placeMenu(menu, trigger) {
-    if (supportsAnchor || !trigger) return;
+    if (supportsAnchor || !trigger || menu.hasAttribute("data-pb-context")) return;
     const t = trigger.getBoundingClientRect();
     menu.style.minWidth = `${Math.max(t.width, 192)}px`;
     const m = menu.getBoundingClientRect();
@@ -60,8 +64,11 @@
       if (!(menu instanceof HTMLElement) || !menu.matches("[data-pb-menu-content]")) return;
       const trigger = triggerFor(menu);
       const open = e.newState === "open";
-      trigger?.setAttribute("aria-expanded", String(open));
-      if (!open) return;
+      if (trigger?.hasAttribute("aria-haspopup")) trigger.setAttribute("aria-expanded", String(open));
+      if (!open) {
+        if (menu.hasAttribute("data-pb-context")) openers.delete(menu);
+        return;
+      }
       placeMenu(menu, trigger);
       const items = menuItems(menu);
       focusAt(items, menu.dataset.pbFocusLast ? -1 : 0);
@@ -96,6 +103,18 @@
       case "Tab":
         menu.hidePopover();
         return;
+      case "ArrowLeft":
+      case "ArrowRight": {
+        // Inside a menubar, move to the neighbouring menu and keep it open.
+        const trigger = triggerFor(menu);
+        const bar = trigger?.closest("[data-pb-menubar]");
+        if (!bar) return;
+        e.preventDefault();
+        const next = barStep(bar, trigger, e.key === "ArrowRight" ? 1 : -1);
+        menu.hidePopover();
+        openFromBar(next);
+        return;
+      }
       case " ":
         if (document.activeElement instanceof HTMLAnchorElement) {
           e.preventDefault();
@@ -118,6 +137,19 @@
     if (!(target instanceof Element)) return;
 
     const trigger = target.closest("[data-pb-menu-trigger]");
+    const bar = trigger?.closest("[data-pb-menubar]");
+    if (bar && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
+      e.preventDefault();
+      const triggers = barTriggers(bar);
+      const next =
+        e.key === "Home"
+          ? triggers[0]
+          : e.key === "End"
+            ? triggers[triggers.length - 1]
+            : barStep(bar, trigger, e.key === "ArrowRight" ? 1 : -1);
+      focusBarTrigger(bar, next);
+      return;
+    }
     if (trigger && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
       const menu = document.getElementById(trigger.getAttribute("aria-controls"));
       if (menu && !menu.matches(":popover-open")) {
@@ -137,6 +169,88 @@
     if (item && item !== document.activeElement && item.getAttribute("aria-disabled") !== "true") item.focus();
   });
 
+  // ---------------------------------------------------------------------------
+  // Menubar (roving focus across menu buttons; menus reuse the code above)
+  // ---------------------------------------------------------------------------
+
+  const barTriggers = (bar) => [...bar.querySelectorAll("[data-pb-menu-trigger]")];
+
+  function barStep(bar, from, delta) {
+    const triggers = barTriggers(bar);
+    const index = triggers.indexOf(from);
+    return triggers[(index + delta + triggers.length) % triggers.length];
+  }
+
+  function focusBarTrigger(bar, trigger) {
+    for (const t of barTriggers(bar)) t.tabIndex = t === trigger ? 0 : -1;
+    trigger.focus();
+  }
+
+  function openFromBar(trigger) {
+    const bar = trigger.closest("[data-pb-menubar]");
+    if (bar) for (const t of barTriggers(bar)) t.tabIndex = t === trigger ? 0 : -1;
+    document.getElementById(trigger.getAttribute("aria-controls"))?.showPopover();
+  }
+
+  function initMenubar(bar) {
+    if (bar.dataset.pbReady !== undefined) return;
+    bar.dataset.pbReady = "";
+    // Server markup leaves every trigger tabbable for no-JS use; switch to
+    // a single tab stop now that arrow keys work.
+    barTriggers(bar).forEach((t, i) => (t.tabIndex = i === 0 ? 0 : -1));
+  }
+
+  // While one menubar menu is open, hovering another trigger switches to it.
+  document.addEventListener("pointerover", (e) => {
+    const trigger = e.target instanceof Element && e.target.closest("[data-pb-menubar] [data-pb-menu-trigger]");
+    if (!trigger || trigger.getAttribute("aria-expanded") === "true") return;
+    const bar = trigger.closest("[data-pb-menubar]");
+    const open = barTriggers(bar).find((t) => t.getAttribute("aria-expanded") === "true");
+    if (!open) return;
+    document.getElementById(open.getAttribute("aria-controls"))?.hidePopover();
+    openFromBar(trigger);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Context menu (right click, long press, Shift+F10 / Menu key)
+  // ---------------------------------------------------------------------------
+
+  function openContextMenu(target, point) {
+    const menu = document.getElementById(target.dataset.pbContextTarget);
+    if (!menu) return false;
+    if (menu.matches(":popover-open")) menu.hidePopover();
+
+    // Keyboard opens carry no pointer position: start at the target's corner.
+    const rect = target.getBoundingClientRect();
+    const x = point ? point.x : rect.left + 8;
+    const y = point ? point.y : rect.top + 8;
+    Object.assign(menu.style, { position: "fixed", left: `${x}px`, top: `${y}px` });
+    openers.set(menu, target);
+    menu.showPopover();
+
+    // Keep the whole menu on screen.
+    const m = menu.getBoundingClientRect();
+    if (m.right > innerWidth - 8) menu.style.left = `${Math.max(8, x - m.width)}px`;
+    if (m.bottom > innerHeight - 8) menu.style.top = `${Math.max(8, y - m.height)}px`;
+    return true;
+  }
+
+  document.addEventListener("contextmenu", (e) => {
+    const target = e.target instanceof Element && e.target.closest("[data-pb-context-target]");
+    if (!target) return;
+    // Some browsers report keyboard-invoked events at (0, 0).
+    const point = e.clientX === 0 && e.clientY === 0 ? null : { x: e.clientX, y: e.clientY };
+    if (openContextMenu(target, point)) e.preventDefault();
+  });
+
+  // Shift+F10 and the Menu key, handled directly: macOS never maps them to a
+  // contextmenu event, and Windows/Linux would otherwise open it twice.
+  document.addEventListener("keydown", (e) => {
+    if (!(e.key === "ContextMenu" || (e.key === "F10" && e.shiftKey))) return;
+    const target = e.target instanceof Element && e.target.closest("[data-pb-context-target]");
+    if (target && openContextMenu(target, null)) e.preventDefault();
+  });
+
   document.addEventListener("click", (e) => {
     const item = e.target instanceof Element && e.target.closest("[data-pb-menu-content] [role='menuitem']");
     if (!item || item.getAttribute("aria-disabled") === "true") return;
@@ -154,6 +268,49 @@
   });
 
   // ---------------------------------------------------------------------------
+  // Listbox controller shared by Combobox and Command palette: filtering,
+  // the active option (aria-activedescendant), and group/empty visibility.
+  // ---------------------------------------------------------------------------
+
+  function listController({ input, options, empty, groups = [], haystack, selectionFollowsFocus = false }) {
+    const text = new Map(options.map((o) => [o, haystack(o).toLowerCase()]));
+    const ctl = {
+      active: -1,
+      visible: () => options.filter((o) => !o.hidden),
+      setActive(i) {
+        const vis = ctl.visible();
+        options.forEach((o) => {
+          o.removeAttribute("data-active");
+          if (selectionFollowsFocus) o.setAttribute("aria-selected", "false");
+        });
+        ctl.active = vis.length ? Math.max(0, Math.min(i, vis.length - 1)) : -1;
+        const option = vis[ctl.active];
+        if (option) {
+          option.setAttribute("data-active", "");
+          if (selectionFollowsFocus) option.setAttribute("aria-selected", "true");
+          input.setAttribute("aria-activedescendant", option.id);
+          option.scrollIntoView({ block: "nearest" });
+        } else {
+          input.removeAttribute("aria-activedescendant");
+        }
+      },
+      filter(query) {
+        const q = query.trim().toLowerCase();
+        let count = 0;
+        for (const o of options) {
+          const show = !q || text.get(o).includes(q);
+          o.hidden = !show;
+          if (show) count++;
+        }
+        for (const g of groups) g.hidden = !g.querySelector("[role='option']:not([hidden])");
+        if (empty) empty.hidden = count > 0;
+        return count;
+      },
+    };
+    return ctl;
+  }
+
+  // ---------------------------------------------------------------------------
   // Combobox (WAI-ARIA combobox with list autocomplete)
   // ---------------------------------------------------------------------------
 
@@ -164,9 +321,13 @@
     const input = root.querySelector("[data-pb-combobox-input]");
     const hidden = root.querySelector("[data-pb-combobox-value]");
     const listbox = root.querySelector("[role='listbox']");
-    const empty = root.querySelector("[data-pb-combobox-empty]");
     const options = [...listbox.querySelectorAll("[role='option']")];
-    let active = -1;
+    const list = listController({
+      input,
+      options,
+      empty: root.querySelector("[data-pb-combobox-empty]"),
+      haystack: (o) => o.dataset.label,
+    });
 
     // Swap the native fallback (text input + datalist) for the ARIA widget.
     hidden.name = input.name;
@@ -177,32 +338,12 @@
     input.setAttribute("aria-autocomplete", "list");
     input.setAttribute("aria-expanded", "false");
 
-    const visible = () => options.filter((o) => !o.hidden);
+    const visible = list.visible;
     const isOpen = () => !listbox.hidden;
-
-    const setActive = (i) => {
-      const vis = visible();
-      options.forEach((o) => o.removeAttribute("data-active"));
-      active = i;
-      const option = vis[i];
-      if (option) {
-        option.setAttribute("data-active", "");
-        input.setAttribute("aria-activedescendant", option.id);
-        option.scrollIntoView({ block: "nearest" });
-      } else {
-        input.removeAttribute("aria-activedescendant");
-      }
-    };
+    const setActive = (i) => list.setActive(i);
 
     const filter = (query) => {
-      const q = query.trim().toLowerCase();
-      let count = 0;
-      for (const o of options) {
-        const show = !q || o.dataset.label.toLowerCase().includes(q);
-        o.hidden = !show;
-        if (show) count++;
-      }
-      if (empty) empty.hidden = count > 0;
+      const count = list.filter(query);
       const selected = visible().findIndex((o) => o.getAttribute("aria-selected") === "true");
       setActive(count ? Math.max(selected, 0) : -1);
     };
@@ -249,16 +390,16 @@
         case "ArrowDown":
           e.preventDefault();
           if (!isOpen()) open();
-          else setActive(Math.min(active + 1, vis.length - 1));
+          else setActive(Math.min(list.active + 1, vis.length - 1));
           break;
         case "ArrowUp":
           e.preventDefault();
-          if (isOpen()) setActive(Math.max(active - 1, 0));
+          if (isOpen()) setActive(Math.max(list.active - 1, 0));
           break;
         case "Enter":
-          if (isOpen() && vis[active]) {
+          if (isOpen() && vis[list.active]) {
             e.preventDefault();
-            select(vis[active]);
+            select(vis[list.active]);
           }
           break;
         case "Escape":
@@ -294,20 +435,25 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Drawer (native <dialog>; fills gaps in invoker commands / closedby)
+  // Dialogs: drawer and command palette (native <dialog>; fills gaps in
+  // invoker commands / closedby)
   // ---------------------------------------------------------------------------
 
   document.addEventListener("click", (e) => {
     const target = e.target;
     if (!(target instanceof Element)) return;
 
-    const opener = target.closest("[data-pb-drawer-open]");
+    const opener = target.closest("[data-pb-drawer-open], [data-pb-dialog-open]");
     if (opener && !supportsCommand) {
       document.getElementById(opener.getAttribute("commandfor"))?.showModal();
       return;
     }
 
-    if (!supportsClosedBy && target instanceof HTMLDialogElement && target.matches("[data-pb-drawer][open]")) {
+    if (
+      !supportsClosedBy &&
+      target instanceof HTMLDialogElement &&
+      target.matches("[data-pb-drawer][open], [data-pb-command][open]")
+    ) {
       const r = target.getBoundingClientRect();
       const outside = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
       if (outside) target.close();
@@ -609,10 +755,117 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Command palette (dialog + combobox over grouped commands; Ctrl/Cmd+K)
+  // ---------------------------------------------------------------------------
+
+  function initCommand(dialog) {
+    if (dialog.dataset.pbReady !== undefined) return;
+    dialog.dataset.pbReady = "";
+
+    const input = dialog.querySelector("[data-pb-command-input]");
+    const listbox = dialog.querySelector("[role='listbox']");
+    const options = [...listbox.querySelectorAll("[role='option']")];
+    const list = listController({
+      input,
+      options,
+      empty: dialog.querySelector("[data-pb-command-empty]"),
+      groups: [...listbox.querySelectorAll("[data-pb-command-group]")],
+      haystack: (o) => `${o.dataset.label} ${o.dataset.keywords || ""}`,
+      selectionFollowsFocus: true,
+    });
+
+    const reset = () => {
+      input.value = "";
+      list.filter("");
+      list.setActive(0);
+    };
+
+    const run = (option) => {
+      if (!option || option.getAttribute("aria-disabled") === "true") return;
+      dialog.close();
+      if (option instanceof HTMLAnchorElement) {
+        option.click();
+        return;
+      }
+      dialog.dispatchEvent(
+        new CustomEvent("proabono:command", {
+          bubbles: true,
+          detail: { value: option.dataset.value, label: option.dataset.label },
+        }),
+      );
+    };
+
+    input.addEventListener("input", () => {
+      list.filter(input.value);
+      list.setActive(0);
+    });
+
+    input.addEventListener("keydown", (e) => {
+      const count = list.visible().length;
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          list.setActive(count ? (list.active + 1) % count : -1);
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          list.setActive(count ? (list.active - 1 + count) % count : -1);
+          break;
+        case "Enter":
+          e.preventDefault();
+          run(list.visible()[list.active]);
+          break;
+      }
+    });
+
+    listbox.addEventListener("pointermove", (e) => {
+      const option = e.target instanceof Element && e.target.closest("[role='option']");
+      if (option) list.setActive(list.visible().indexOf(option));
+    });
+    listbox.addEventListener("pointerdown", (e) => e.preventDefault());
+    listbox.addEventListener("click", (e) => {
+      const option = e.target instanceof Element && e.target.closest("[role='option']");
+      if (!option) return;
+      if (option instanceof HTMLAnchorElement) {
+        // Let the browser follow the link (also the path `run` takes via click()).
+        dialog.close();
+        return;
+      }
+      e.preventDefault();
+      run(option);
+    });
+
+    // Start every opening with an empty query and the first command active.
+    // `toggle` fires on dialogs in current browsers; `close` covers the rest.
+    dialog.addEventListener("toggle", (e) => {
+      if (e.newState === "open") {
+        reset();
+        input.focus();
+      }
+    });
+    dialog.addEventListener("close", reset);
+    reset();
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+    const dialog = document.querySelector(`[data-pb-command][data-hotkey="${CSS.escape(e.key.toLowerCase())}"]`);
+    if (!dialog) return;
+    e.preventDefault();
+    if (dialog.open) dialog.close();
+    else {
+      dialog.showModal();
+      dialog.querySelector("[data-pb-command-input]")?.focus();
+    }
+  });
+
+  // ---------------------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------------------
 
   function init(root = document) {
+    root.querySelectorAll("[data-pb-menubar]").forEach(initMenubar);
+    root.querySelectorAll("[data-pb-command]").forEach(initCommand);
     root.querySelectorAll("[data-pb-table]").forEach(initTable);
     root.querySelectorAll("[data-pb-combobox]").forEach(initCombobox);
     root.querySelectorAll("[data-pb-toaster]").forEach(bindToaster);
@@ -622,6 +875,8 @@
     for (const record of records) {
       for (const node of record.addedNodes) {
         if (node instanceof Element) {
+          if (node.matches("[data-pb-menubar]")) initMenubar(node);
+          if (node.matches("[data-pb-command]")) initCommand(node);
           if (node.matches("[data-pb-table]")) initTable(node);
           if (node.matches("[data-pb-combobox]")) initCombobox(node);
           if (node.matches("[data-pb-toaster]")) bindToaster(node);

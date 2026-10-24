@@ -11,6 +11,9 @@ the WAI-ARIA Authoring Practices patterns. No Proa UI Pro licence needed.
 | `toast`         | Sonner-style stacked notifications, server-rendered or from JS              |
 | `data-table`    | Typed columns over rows; runtime adds sorting, filter, live count, client paging |
 | `pagination`    | Server-side page links with ellipsis windowing; no JavaScript               |
+| `menubar`       | Desktop-style row of menus: roving focus, Left/Right between open menus, hover switching |
+| `context-menu`  | Right-click / long-press / Shift+F10 menu over any content                  |
+| `command-palette` | Ctrl/Cmd+K search-and-run dialog over grouped commands                    |
 | `core`          | Icons, `proabono.css` (theme tokens + styles), `proabono.js` (runtime). Pulled in automatically |
 
 Everything renders as plain HTML on the server and works without JavaScript
@@ -35,7 +38,7 @@ site/                       Gallery: a Proa site that compiles registry/ in plac
 cargo install --git https://github.com/rickboy/proabono-kit proabono
 cd my-proa-site
 proabono list
-proabono add dropdown-menu combobox drawer toast data-table pagination
+proabono add dropdown-menu combobox drawer toast data-table pagination menubar context-menu command-palette
 ```
 
 The registry is published to GitHub Pages on every push to `main`
@@ -130,6 +133,39 @@ sort and page on the server and render `Pagination` under the table:
 ```rust
 use crate::components::pagination::Pagination;
 html_sync! { {Pagination::new(page, total_pages, "/calls?page=")} }
+```
+
+```rust
+use crate::components::menubar::{Menubar, MenubarMenu};
+use crate::components::context_menu::ContextMenu;
+// Both reuse dropdown_menu::MenuItem, and fire the same proabono:select event.
+const MENUS: [MenubarMenu; 2] = [
+    MenubarMenu::new("file", "File", &FILE_ITEMS),
+    MenubarMenu::new("edit", "Edit", &EDIT_ITEMS),
+];
+html_sync! {
+    {Menubar::new("Editor", &MENUS)}
+    {ContextMenu::new("row-actions", "Row actions", &ROW_ITEMS, RowCard)}
+}
+```
+
+A context menu is a shortcut: without JavaScript the browser's own menu
+appears, so keep the same actions reachable elsewhere on the page.
+
+```rust
+use crate::components::command_palette::{Command, CommandGroup, CommandPalette, CommandTrigger};
+const GO: [Command; 1] = [Command::link("Devlog", "/devlog").keywords("blog news")];
+const DO: [Command; 1] = [Command::action("Toggle theme", "theme").shortcut("Ctrl+T")];
+const GROUPS: [CommandGroup; 2] = [CommandGroup::new("Go to", &GO), CommandGroup::new("Actions", &DO)];
+html_sync! {
+    {CommandTrigger::new("palette", "Search...")}
+    {CommandPalette::new("palette", &GROUPS)}   // Ctrl/Cmd+K by default; .hotkey(None) to disable
+}
+```
+
+```js
+// Action commands (no href) fire proabono:command from the dialog.
+document.addEventListener("proabono:command", (e) => console.log(e.detail.value));
 ```
 
 ```js

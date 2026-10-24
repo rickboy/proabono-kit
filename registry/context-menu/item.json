@@ -1,0 +1,6 @@
+{
+  "name": "context-menu",
+  "module": "context_menu",
+  "description": "Right-click / long-press / Shift+F10 menu over any content, reusing dropdown-menu items and keyboard handling.",
+  "dependencies": ["core", "dropdown-menu"]
+}
